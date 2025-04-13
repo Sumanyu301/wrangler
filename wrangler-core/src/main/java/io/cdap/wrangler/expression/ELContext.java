@@ -27,20 +27,28 @@ import javax.annotation.Nullable;
 /**
  * Manages variables which can be referenced in a JEXL expression.
  *
- * <p>JEXL variable names in their simplest form are 'java-like' identifiers.
+ * <p>
+ * JEXL variable names in their simplest form are 'java-like' identifiers.
  * JEXL also considers 'ant' inspired variables expressions as valid.
- * For instance, the expression 'x.y.z' is an 'antish' variable and will be resolved as a whole by the context,
- * i.e. using the key "x.y.z". This proves to be useful to solve "fully qualified class names".</p>
+ * For instance, the expression 'x.y.z' is an 'antish' variable and will be
+ * resolved as a whole by the context,
+ * i.e. using the key "x.y.z". This proves to be useful to solve "fully
+ * qualified class names".
+ * </p>
  *
- * <p>Note that JEXL may use '$jexl' and '$ujexl' variables for internal purpose; setting or getting those
- * variables may lead to unexpected results unless specified otherwise.</p>
+ * <p>
+ * Note that JEXL may use '$jexl' and '$ujexl' variables for internal purpose;
+ * setting or getting those
+ * variables may lead to unexpected results unless specified otherwise.
+ * </p>
  */
 public class ELContext implements JexlContext {
   private final Map<String, Object> values = new HashMap<>();
 
   /**
    * Context object passed to every expression evaluation.
-   * All properties of this class are public to ensure they can be accessed with dot(.) format.
+   * All properties of this class are public to ensure they can be accessed with
+   * dot(.) format.
    */
   public static class Context {
     public final String environment;
@@ -64,9 +72,12 @@ public class ELContext implements JexlContext {
   }
 
   /**
-   * Constructor that extracts the {@link ExecutorContext} internals and turns them into variables.
-   * This method extracts the transient variables, runtime arguments, environment it's running in and
-   * the context in which it is running as identifiers that can be used within JEXL expression.
+   * Constructor that extracts the {@link ExecutorContext} internals and turns
+   * them into variables.
+   * This method extracts the transient variables, runtime arguments, environment
+   * it's running in and
+   * the context in which it is running as identifiers that can be used within
+   * JEXL expression.
    *
    * @param context to be examined to be extracted into JEXL expression variables.
    */
@@ -75,11 +86,12 @@ public class ELContext implements JexlContext {
   }
 
   /**
-   * Sets the context for EL, includes the required variables in expression, 'this' and 'ctx'.
+   * Sets the context for EL, includes the required variables in expression,
+   * 'this' and 'ctx'.
    *
    * @param context to be examined to be extracted into JEXL expression variables.
-   * @param el the expression.
-   * @param row the row for 'this'.
+   * @param el      the expression.
+   * @param row     the row for 'this'.
    */
   public ELContext(ExecutorContext context, EL el, Row row) {
     for (String var : el.variables()) {
@@ -104,7 +116,7 @@ public class ELContext implements JexlContext {
   /**
    * This constructor sets the expression context with a variable.
    *
-   * @param name of the variable.
+   * @param name   of the variable.
    * @param object the object associated with the variable.
    */
   public ELContext(String name, Object object) {
@@ -134,7 +146,7 @@ public class ELContext implements JexlContext {
   /**
    * Sets a variable with the value.
    *
-   * @param name of the variable.
+   * @param name  of the variable.
    * @param value of the variable.
    */
   @Override
@@ -142,10 +154,11 @@ public class ELContext implements JexlContext {
     values.put(name, value);
   }
 
-  /**d
+  /**
+   * d
    * Sets a variable with the value.
    *
-   * @param name of the variable.
+   * @param name  of the variable.
    * @param value of the variable.
    * @return 'this' context.
    */

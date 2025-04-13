@@ -65,7 +65,7 @@ public class ByteSize implements Token {
             case "KB":
                 return (long) (numericValue * 1024);
             case "MB":
-                return (long) (numericValue * 1024 * 1024); 
+                return (long) (numericValue * 1024 * 1024);
             case "GB":
                 return (long) (numericValue * 1024 * 1024 * 1024);
             case "TB":
@@ -78,7 +78,7 @@ public class ByteSize implements Token {
     /**
      * Returns the size in bytes.
      *
-     * @return size in bytes 
+     * @return size in bytes
      */
     public long getBytes() {
         return bytes;
