@@ -8,8 +8,8 @@
  *  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  *  License for the specific language governing permissions and limitations under
  *  the License.
  */
@@ -22,7 +22,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import com.jayway.jsonpath.Configuration;
@@ -51,7 +50,6 @@ public final class JsonFunctions {
     .options(Option.SUPPRESS_EXCEPTIONS)
     .build();
 
-  private static final JsonParser PARSER = new JsonParser();
   private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
   private JsonFunctions() {
@@ -59,13 +57,13 @@ public final class JsonFunctions {
 
   @Deprecated
   public static JsonElement select(String json, String path, String ...paths) {
-    JsonElement element = PARSER.parse(json);
+    JsonElement element = GSON.fromJson(json, JsonElement.class);
     return select(element, path, paths);
   }
 
   @Deprecated
   public static JsonElement select(String json, boolean toLower, String path, String ...paths) {
-    JsonElement element = PARSER.parse(json);
+    JsonElement element = GSON.fromJson(json, JsonElement.class);
     return select(element, toLower, path, paths);
   }
 
@@ -94,7 +92,7 @@ public final class JsonFunctions {
 
   @Deprecated
   public static JsonElement drop(String json, String field, String ... fields) {
-    JsonElement element = PARSER.parse(json);
+    JsonElement element = GSON.fromJson(json, JsonElement.class);
     return drop(element, field, fields);
   }
 
@@ -220,7 +218,7 @@ public final class JsonFunctions {
    */
   @Deprecated
   public static JsonElement parse(String json, boolean toLower) {
-    JsonElement element = PARSER.parse(json);
+    JsonElement element = GSON.fromJson(json, JsonElement.class);
     if (toLower) {
       element = keysToLower(element);
     }
@@ -234,23 +232,28 @@ public final class JsonFunctions {
    * @return parsed json
    */
   public static JsonElement Parse(String json) {
+    if (json == null || json.isEmpty()) {
+      return JsonNull.INSTANCE;
+    }
     try {
-      JsonElement element = PARSER.parse(json);
-      return element;
+      return GSON.fromJson(json, JsonElement.class);
     } catch (JsonSyntaxException e) {
       return JsonNull.INSTANCE;
     }
   }
 
   /**
-   * Checks if a json is valid.
+   * Checks if a json string is valid.
    *
-   * @param json to checked for validity.
+   * @param json to be checked for validity.
    * @return true if valid, false otherwise.
    */
   public static boolean IsValid(String json) {
+    if (json == null || json.isEmpty()) {
+      return false;
+    }
     try {
-      PARSER.parse(json);
+      GSON.fromJson(json, JsonElement.class);
       return true;
     } catch (JsonSyntaxException e) {
       return false;

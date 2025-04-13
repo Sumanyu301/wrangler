@@ -20,6 +20,7 @@ import io.cdap.wrangler.TestingRig;
 import io.cdap.wrangler.api.CompileStatus;
 import io.cdap.wrangler.api.Compiler;
 import io.cdap.wrangler.api.Directive;
+import io.cdap.wrangler.api.DirectiveParseException;
 import io.cdap.wrangler.api.RecipeParser;
 import org.junit.Assert;
 import org.junit.Test;
@@ -117,6 +118,63 @@ public class GrammarBasedParserTest {
     RecipeParser parser = TestingRig.parse(recipe);
     List<Directive> directives = parser.parse();
     Assert.assertEquals(1, directives.size());
+  }
+
+  @Test
+  public void testAggregateDirectiveVariants() throws Exception {
+    String[] validRecipes = new String[] {
+        // Basic syntax
+        "aggregate-size-time :size :time :total_size :total_time",
+        // With units
+        "aggregate-size-time :size :time :total_size :total_time 'MB' 'seconds'",
+        "aggregate-size-time :size :time :total_size :total_time 'KB' 'minutes'",
+        // With units and average flag
+        "aggregate-size-time :size :time :avg_size :avg_time 'MB' 'seconds' true",
+        // With column name variations
+        "aggregate-size-time :data_size :response_time :total_size :total_time",
+        // With null units
+        "aggregate-size-time :size :time :total_size :total_time null null",
+        // With quoted strings in column names
+        "aggregate-size-time :'size column' :'time column' :'total size' :'total time'"
+    };
+
+    for (String recipe : validRecipes) {
+      RecipeParser parser = TestingRig.parse(new String[] { recipe });
+      List<Directive> directives = parser.parse();
+      Assert.assertEquals("Recipe should parse to one directive: " + recipe, 1, directives.size());
+    }
+  }
+
+  @Test(expected = DirectiveParseException.class)
+  public void testAggregateInvalidColumnNames() throws Exception {
+    String[] recipe = new String[] {
+        "aggregate-size-time invalid_col :time :total :total_time"
+    };
+    TestingRig.parse(recipe).parse();
+  }
+
+  @Test(expected = DirectiveParseException.class)
+  public void testAggregateInvalidUnit() throws Exception {
+    String[] recipe = new String[] {
+        "aggregate-size-time :size :time :total :total_time INVALID 'minutes'"
+    };
+    TestingRig.parse(recipe).parse();
+  }
+
+  @Test(expected = DirectiveParseException.class)
+  public void testAggregateMissingTargetColumns() throws Exception {
+    String[] recipe = new String[] {
+        "aggregate-size-time :size :time"
+    };
+    TestingRig.parse(recipe).parse();
+  }
+
+  @Test(expected = DirectiveParseException.class)
+  public void testAggregateInvalidBoolean() throws Exception {
+    String[] recipe = new String[] {
+        "aggregate-size-time :size :time :total :total_time 'MB' 'minutes' NOT_BOOLEAN"
+    };
+    TestingRig.parse(recipe).parse();
   }
 
 }

@@ -39,6 +39,7 @@ public class TimeDurationTest {
         Assert.assertEquals(2500L, new TimeDuration("2.5s").getMilliseconds());
         Assert.assertEquals(90000L, new TimeDuration("1.5m").getMilliseconds());
         Assert.assertEquals(5400000L, new TimeDuration("1.5h").getMilliseconds());
+        Assert.assertEquals(129600000L, new TimeDuration("1.5d").getMilliseconds());
     }
 
     @Test
@@ -47,6 +48,12 @@ public class TimeDurationTest {
         Assert.assertEquals(1000L, new TimeDuration("1s").getMilliseconds());
         Assert.assertEquals(60000L, new TimeDuration("1M").getMilliseconds());
         Assert.assertEquals(60000L, new TimeDuration("1m").getMilliseconds());
+        Assert.assertEquals(3600000L, new TimeDuration("1H").getMilliseconds());
+        Assert.assertEquals(3600000L, new TimeDuration("1h").getMilliseconds());
+        Assert.assertEquals(86400000L, new TimeDuration("1D").getMilliseconds());
+        Assert.assertEquals(86400000L, new TimeDuration("1d").getMilliseconds());
+        Assert.assertEquals(1L, new TimeDuration("1MS").getMilliseconds());
+        Assert.assertEquals(1L, new TimeDuration("1ms").getMilliseconds());
     }
 
     @Test
@@ -54,6 +61,14 @@ public class TimeDurationTest {
         Assert.assertEquals(1000L, new TimeDuration("1 s").getMilliseconds());
         Assert.assertEquals(1000L, new TimeDuration(" 1s").getMilliseconds());
         Assert.assertEquals(1000L, new TimeDuration("1s ").getMilliseconds());
+        Assert.assertEquals(1000L, new TimeDuration(" 1 s ").getMilliseconds());
+    }
+
+    @Test
+    public void testZeroAndLargeValues() {
+        Assert.assertEquals(0L, new TimeDuration("0ms").getMilliseconds());
+        Assert.assertEquals(0L, new TimeDuration("0s").getMilliseconds());
+        Assert.assertEquals(86400000L * 365L, new TimeDuration("365d").getMilliseconds());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -79,5 +94,10 @@ public class TimeDurationTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNullInput() {
         new TimeDuration(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNegativeValue() {
+        new TimeDuration("-1s");
     }
 }

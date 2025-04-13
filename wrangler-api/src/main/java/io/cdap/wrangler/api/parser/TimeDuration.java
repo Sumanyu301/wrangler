@@ -36,31 +36,44 @@ public class TimeDuration implements Token {
     }
 
     private long parseTimeDuration(String value) {
-        if (value == null || value.isEmpty()) {
+        if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException("Time duration cannot be null or empty");
         }
 
-        String number = value.replaceAll("[^0-9]", "");
-        String unit = value.replaceAll("[0-9]", "");
+        // Normalize input by removing all whitespace and converting to lowercase
+        value = value.replaceAll("\\s+", "").toLowerCase();
 
-        if (number.isEmpty() || unit.isEmpty()) {
+        // Extract numeric part and unit part using regex that handles decimals
+        String[] parts = value.split("(?<=\\d)(?=ms|[smhd])");
+        if (parts.length != 2) {
             throw new IllegalArgumentException("Invalid time duration format: " + value);
         }
 
-        long numericValue = Long.parseLong(number);
-        switch (unit) {
+        // Parse the numeric part, allowing for decimals
+        double numericValue;
+        try {
+            numericValue = Double.parseDouble(parts[0]);
+            if (numericValue < 0) {
+                throw new IllegalArgumentException("Time duration cannot be negative: " + value);
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric value: " + parts[0]);
+        }
+
+        // Convert based on unit
+        switch (parts[1]) {
             case "ms":
-                return numericValue;
+                return (long) numericValue;
             case "s":
-                return numericValue * 1000;
+                return (long) (numericValue * 1000);
             case "m":
-                return numericValue * 60 * 1000;
+                return (long) (numericValue * 60 * 1000);
             case "h":
-                return numericValue * 60 * 60 * 1000;
+                return (long) (numericValue * 60 * 60 * 1000);
             case "d":
-                return numericValue * 24 * 60 * 60 * 1000;
+                return (long) (numericValue * 24 * 60 * 60 * 1000);
             default:
-                throw new IllegalArgumentException("Invalid time unit: " + unit);
+                throw new IllegalArgumentException("Invalid time duration unit: " + parts[1]);
         }
     }
 

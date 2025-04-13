@@ -25,29 +25,61 @@ import io.cdap.wrangler.api.annotations.PublicEvolving;
  */
 @PublicEvolving
 public class ByteSize implements Token {
-
     private final long bytes;
+    private final String originalValue;
 
     public ByteSize(String value) {
+        this.originalValue = value;
         this.bytes = parseByteSize(value);
     }
 
     private long parseByteSize(String value) {
-        if (value.endsWith("KB")) {
-            return Long.parseLong(value.replace("KB", "")) * 1024;
-        } else if (value.endsWith("MB")) {
-            return Long.parseLong(value.replace("MB", "")) * 1024 * 1024;
-        } else if (value.endsWith("GB")) {
-            return Long.parseLong(value.replace("GB", "")) * 1024 * 1024 * 1024;
-        } else if (value.endsWith("TB")) {
-            return Long.parseLong(value.replace("TB", "")) * 1024L * 1024 * 1024 * 1024;
-        } else if (value.endsWith("B")) {
-            return Long.parseLong(value.replace("B", ""));
-        } else {
-            throw new IllegalArgumentException("Invalid byte size: " + value);
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("Byte size cannot be null or empty");
+        }
+
+        // Normalize input by removing all whitespace and converting to uppercase
+        value = value.replaceAll("\\s+", "").toUpperCase();
+
+        // Extract numeric part and unit part using regex that handles decimals
+        String[] parts = value.split("(?<=\\d)(?=B|K|M|G|T)");
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Invalid byte size format: " + value);
+        }
+
+        // Parse the numeric part, allowing for decimals
+        double numericValue;
+        try {
+            numericValue = Double.parseDouble(parts[0]);
+            if (numericValue < 0) {
+                throw new IllegalArgumentException("Byte size cannot be negative: " + value);
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid numeric value: " + parts[0]);
+        }
+
+        // Convert based on unit
+        switch (parts[1]) {
+            case "B":
+                return (long) numericValue;
+            case "KB":
+                return (long) (numericValue * 1024);
+            case "MB":
+                return (long) (numericValue * 1024 * 1024); 
+            case "GB":
+                return (long) (numericValue * 1024 * 1024 * 1024);
+            case "TB":
+                return (long) (numericValue * 1024L * 1024 * 1024 * 1024);
+            default:
+                throw new IllegalArgumentException("Invalid byte size unit: " + parts[1]);
         }
     }
 
+    /**
+     * Returns the size in bytes.
+     *
+     * @return size in bytes 
+     */
     public long getBytes() {
         return bytes;
     }
@@ -66,7 +98,8 @@ public class ByteSize implements Token {
     public JsonElement toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("type", "BYTE_SIZE");
-        json.addProperty("value", bytes);
+        json.addProperty("value", originalValue);
+        json.addProperty("bytes", bytes);
         return json;
     }
 }

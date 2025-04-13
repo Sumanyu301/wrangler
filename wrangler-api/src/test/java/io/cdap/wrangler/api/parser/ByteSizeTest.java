@@ -38,6 +38,8 @@ public class ByteSizeTest {
         Assert.assertEquals(1536L, new ByteSize("1.5KB").getBytes()); // 1.5 * 1024
         Assert.assertEquals(2560L, new ByteSize("2.5KB").getBytes()); // 2.5 * 1024
         Assert.assertEquals(1572864L, new ByteSize("1.5MB").getBytes()); // 1.5 * 1024 * 1024
+        Assert.assertEquals(3145728L, new ByteSize("3MB").getBytes()); // 3 * 1024 * 1024
+        Assert.assertEquals(10737418240L, new ByteSize("10GB").getBytes()); // 10 * 1024 * 1024 * 1024
     }
 
     @Test
@@ -46,6 +48,8 @@ public class ByteSizeTest {
         Assert.assertEquals(1024L, new ByteSize("1KB").getBytes());
         Assert.assertEquals(1024L * 1024L, new ByteSize("1mb").getBytes());
         Assert.assertEquals(1024L * 1024L, new ByteSize("1MB").getBytes());
+        Assert.assertEquals(1024L * 1024L * 1024L, new ByteSize("1gb").getBytes());
+        Assert.assertEquals(1024L * 1024L * 1024L, new ByteSize("1GB").getBytes());
     }
 
     @Test
@@ -53,6 +57,14 @@ public class ByteSizeTest {
         Assert.assertEquals(1024L, new ByteSize("1 KB").getBytes());
         Assert.assertEquals(1024L, new ByteSize(" 1KB").getBytes());
         Assert.assertEquals(1024L, new ByteSize("1KB ").getBytes());
+        Assert.assertEquals(1024L, new ByteSize(" 1 KB ").getBytes());
+    }
+
+    @Test
+    public void testZeroAndLargeValues() {
+        Assert.assertEquals(0L, new ByteSize("0B").getBytes());
+        Assert.assertEquals(0L, new ByteSize("0KB").getBytes());
+        Assert.assertEquals(1125899906842624L, new ByteSize("1024TB").getBytes());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -78,5 +90,10 @@ public class ByteSizeTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNullInput() {
         new ByteSize(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNegativeValue() {
+        new ByteSize("-1KB");
     }
 }

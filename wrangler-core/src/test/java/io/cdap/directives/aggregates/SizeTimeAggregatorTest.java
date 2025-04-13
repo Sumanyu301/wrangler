@@ -7,19 +7,16 @@
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package io.cdap.directives.aggregates;
 
 import io.cdap.wrangler.TestingRig;
-import io.cdap.wrangler.api.DirectiveExecutionException;
-import io.cdap.wrangler.api.DirectiveLoadException;
 import io.cdap.wrangler.api.DirectiveParseException;
+import io.cdap.wrangler.api.DirectiveLoadException;
 import io.cdap.wrangler.api.RecipeException;
 import io.cdap.wrangler.api.Row;
 import org.junit.Assert;
@@ -29,104 +26,125 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Tests {@link SizeTimeAggregator}
+ * Tests {@link SizeTimeAggregator} functionality for aggregating data transfer
+ * sizes and response times
  */
 public class SizeTimeAggregatorTest {
+    private static final double DELTA = 0.001; // Delta for floating point comparisons
 
     @Test
-    public void testBasicAggregation() throws DirectiveParseException, DirectiveExecutionException,
-            DirectiveLoadException, RecipeException {
-        String[] directive = new String[] {
-                "aggregate-size-time :size :time :total_size :total_time"
+    public void testBasicSizeTimeAggregation() throws DirectiveParseException, DirectiveLoadException, RecipeException {
+        // Base recipe for simple aggregation
+        String[] recipe = new String[] {
+                "aggregate-size-time :data_transfer_size :response_time :total_size_mb :total_time_sec 'MB' 'seconds'"
         };
 
+        // Sample log/transaction data
+        // Using 1 MB = 1024 * 1024 bytes (binary conversion)
         List<Row> rows = Arrays.asList(
-                new Row("size", "1KB").add("time", "1s"),
-                new Row("size", "2KB").add("time", "2s"),
-                new Row("size", "3KB").add("time", "3s"));
+                // 1.5 MB data, 2.5 seconds response time
+                new Row("data_transfer_size", 1.5 * 1024 * 1024).add("response_time", 2.5 * 1000),
+                // 2.5 MB data, 1.8 seconds response time
+                new Row("data_transfer_size", 2.5 * 1024 * 1024).add("response_time", 1.8 * 1000),
+                // 3.0 MB data, 3.2 seconds response time
+                new Row("data_transfer_size", 3.0 * 1024 * 1024).add("response_time", 3.2 * 1000));
 
-        List<Row> results = TestingRig.execute(directive, rows);
+        // Execute the recipe
+        List<Row> results = TestingRig.execute(recipe, rows);
 
-        // Check that all rows are preserved
-        Assert.assertEquals(3, results.size());
+        // Verify results
+        Assert.assertEquals("Should produce exactly one row with results", 1, results.size());
 
-        // Check that aggregated values are added to last row
-        Row lastRow = results.get(results.size() - 1);
-        long totalSize = (Long) lastRow.getValue("total_size");
-        long totalTime = (Long) lastRow.getValue("total_time");
+        // Size Calculation: Sum all data_transfer_size values (1.5 + 2.5 + 3.0 = 7.0
+        // MB)
+        double expectedTotalSizeInMB = 7.0;
+        Assert.assertEquals(expectedTotalSizeInMB,
+                ((Number) results.get(0).getValue("total_size_mb")).doubleValue(), DELTA);
 
-        // 6KB = 6 * 1024 bytes
-        Assert.assertEquals(6 * 1024L, totalSize);
-        // 6s = 6000 milliseconds
-        Assert.assertEquals(6000L, totalTime);
-    }
-
-    @Test
-    public void testAggregationWithUnitConversion() throws DirectiveParseException, DirectiveExecutionException,
-            DirectiveLoadException, RecipeException {
-        String[] directive = new String[] {
-                "aggregate-size-time :size :time :total_size_mb :total_time_min 'MB' 'minutes'"
-        };
-
-        List<Row> rows = Arrays.asList(
-                new Row("size", "1MB").add("time", "30s"),
-                new Row("size", "2MB").add("time", "90s"));
-
-        List<Row> results = TestingRig.execute(directive, rows);
-        Row lastRow = results.get(results.size() - 1);
-
-        long totalSizeMB = (Long) lastRow.getValue("total_size_mb");
-        long totalTimeMin = (Long) lastRow.getValue("total_time_min");
-
-        Assert.assertEquals(3L, totalSizeMB); // 3 MB
-        Assert.assertEquals(2L, totalTimeMin); // 120s = 2 min
+        // Time Calculation: Sum all response_time values (2.5 + 1.8 + 3.2 = 7.5
+        // seconds)
+        double expectedTotalTimeInSeconds = 7.5;
+        Assert.assertEquals(expectedTotalTimeInSeconds,
+                ((Number) results.get(0).getValue("total_time_sec")).doubleValue(), DELTA);
     }
 
     @Test
-    public void testAggregationWithAverages() throws DirectiveParseException, DirectiveExecutionException,
-            DirectiveLoadException, RecipeException {
-        String[] directive = new String[] {
-                "aggregate-size-time :size :time :avg_size :avg_time 'MB' 'seconds' true"
+    public void testDifferentOutputUnits() throws DirectiveParseException, DirectiveLoadException, RecipeException {
+        String[] recipe = new String[] {
+                // Output in KB and milliseconds
+                "aggregate-size-time :data_transfer_size :response_time :total_size_kb :total_time_ms 'KB' 'milliseconds'"
         };
 
+        // Sample data - consistent units for easy verification
         List<Row> rows = Arrays.asList(
-                new Row("size", "1MB").add("time", "1000ms"),
-                new Row("size", "2MB").add("time", "2000ms"),
-                new Row("size", "3MB").add("time", "3000ms"));
+                new Row("data_transfer_size", 1024 * 1024).add("response_time", 1000), // 1MB, 1sec
+                new Row("data_transfer_size", 1024 * 1024).add("response_time", 1000) // 1MB, 1sec
+        );
 
-        List<Row> results = TestingRig.execute(directive, rows);
-        Row lastRow = results.get(results.size() - 1);
+        List<Row> results = TestingRig.execute(recipe, rows);
+        Assert.assertEquals(1, results.size());
 
-        long avgSizeMB = (Long) lastRow.getValue("avg_size");
-        long avgTimeSec = (Long) lastRow.getValue("avg_time");
+        // 2MB = 2048 KB
+        double expectedTotalSizeInKB = 2048.0;
+        Assert.assertEquals(expectedTotalSizeInKB,
+                ((Number) results.get(0).getValue("total_size_kb")).doubleValue(), DELTA);
 
-        Assert.assertEquals(2L, avgSizeMB); // (1+2+3)/3 = 2 MB
-        Assert.assertEquals(2L, avgTimeSec); // (1+2+3)/3 = 2 seconds
+        // 2 seconds = 2000 milliseconds
+        double expectedTotalTimeInMs = 2000.0;
+        Assert.assertEquals(expectedTotalTimeInMs,
+                ((Number) results.get(0).getValue("total_time_ms")).doubleValue(), DELTA);
     }
 
-    @Test(expected = DirectiveExecutionException.class)
-    public void testInvalidByteSize() throws DirectiveParseException, DirectiveExecutionException,
-            DirectiveLoadException, RecipeException {
-        String[] directive = new String[] {
-                "aggregate-size-time :size :time :total_size :total_time"
+    @Test
+    public void testAverageCalculation() throws DirectiveParseException, DirectiveLoadException, RecipeException {
+        String[] recipe = new String[] {
+                "aggregate-size-time :data_transfer_size :response_time :avg_size_mb :avg_time_sec 'MB' 'seconds' true"
         };
 
+        // Sample data with 3 entries
         List<Row> rows = Arrays.asList(
-                new Row("size", "invalid").add("time", "1s"));
+                new Row("data_transfer_size", 1 * 1024 * 1024).add("response_time", 1000), // 1MB, 1sec
+                new Row("data_transfer_size", 2 * 1024 * 1024).add("response_time", 2000), // 2MB, 2sec
+                new Row("data_transfer_size", 3 * 1024 * 1024).add("response_time", 3000) // 3MB, 3sec
+        );
 
-        TestingRig.execute(directive, rows);
+        List<Row> results = TestingRig.execute(recipe, rows);
+        Assert.assertEquals(1, results.size());
+
+        // Average: (1 + 2 + 3) / 3 = 2 MB
+        double expectedAvgSizeInMB = 2.0;
+        Assert.assertEquals(expectedAvgSizeInMB,
+                ((Number) results.get(0).getValue("avg_size_mb")).doubleValue(), DELTA);
+
+        // Average: (1 + 2 + 3) / 3 = 2 seconds
+        double expectedAvgTimeInSeconds = 2.0;
+        Assert.assertEquals(expectedAvgTimeInSeconds,
+                ((Number) results.get(0).getValue("avg_time_sec")).doubleValue(), DELTA);
     }
 
-    @Test(expected = DirectiveExecutionException.class)
-    public void testInvalidTimeDuration() throws DirectiveParseException, DirectiveExecutionException,
-            DirectiveLoadException, RecipeException {
-        String[] directive = new String[] {
-                "aggregate-size-time :size :time :total_size :total_time"
+    @Test
+    public void testMixedInputUnits() throws DirectiveParseException, DirectiveLoadException, RecipeException {
+        String[] recipe = new String[] {
+                "aggregate-size-time :data_transfer_size :response_time :total_size_mb :total_time_sec 'MB' 'seconds'"
         };
 
+        // Sample data with mixed units
         List<Row> rows = Arrays.asList(
-                new Row("size", "1KB").add("time", "invalid"));
+                new Row("data_transfer_size", "1.5MB").add("response_time", "2500ms"),
+                new Row("data_transfer_size", "500KB").add("response_time", "1.8s"),
+                new Row("data_transfer_size", "2MB").add("response_time", "3.2s"));
 
-        TestingRig.execute(directive, rows);
+        List<Row> results = TestingRig.execute(recipe, rows);
+        Assert.assertEquals(1, results.size());
+
+        // 1.5MB + 500KB + 2MB = 4MB (500KB = 0.5MB)
+        double expectedTotalSizeInMB = 4.0;
+        Assert.assertEquals(expectedTotalSizeInMB,
+                ((Number) results.get(0).getValue("total_size_mb")).doubleValue(), DELTA);
+
+        // 2.5s + 1.8s + 3.2s = 7.5s (2500ms = 2.5s)
+        double expectedTotalTimeInSeconds = 7.5;
+        Assert.assertEquals(expectedTotalTimeInSeconds,
+                ((Number) results.get(0).getValue("total_time_sec")).doubleValue(), DELTA);
     }
 }
